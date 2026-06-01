@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Veritais - Detector de Fake News</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f2f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #1a1a1a;
+            margin-bottom: 30px;
+        }
+        
+        /* Estilo das Abas */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            background-color: #e4e6eb;
+            color: #4b4f56;
+            transition: all 0.3s;
+        }
+        .tab-btn.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+
+        /* Áreas de Input */
+        .input-area {
+            display: none;
+            margin-bottom: 20px;
+        }
+        .input-area.active {
+            display: block;
+        }
+        textarea {
+            width: 100%;
+            height: 120px;
+            padding: 15px;
+            border: 1px solid #ccd0d5;
+            border-radius: 8px;
+            font-size: 16px;
+            resize: vertical;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .file-upload {
+            width: 100%;
+            padding: 30px;
+            border: 2px dashed #ccd0d5;
+            border-radius: 8px;
+            text-align: center;
+            box-sizing: border-box;
+            background-color: #f8f9fa;
+        }
+
+        /* Botão Principal */
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background-color: #1e293b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 18px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .submit-btn:hover {
+            background-color: #0f172a;
+        }
+        .submit-btn:disabled {
+            background-color: #94a3b8;
+            cursor: not-allowed;
+        }
+
+        /* Área de Resultado */
+        #result-container {
+            margin-top: 30px;
+            padding: 20px;
+            border-radius: 8px;
+            display: none;
+        }
+        .verdict-FALSO {
+            background-color: #fef2f2;
+            border-left: 6px solid #ef4444;
+        }
+        .verdict-VERDADEIRO {
+            background-color: #f0fdf4;
+            border-left: 6px solid #22c55e;
+        }
+        .verdict-SUSPEITO {
+            background-color: #fffbeb;
+            border-left: 6px solid #f59e0b;
+        }
+        .verdict-INCONCLUSIVO {
+            background-color: #f8fafc;
+            border-left: 6px solid #64748b;
+        }
+
+        .result-title {
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        .confidence-bar {
+            height: 8px;
+            background-color: #e2e8f0;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            overflow: hidden;
+        }
+        .confidence-level {
+            height: 100%;
+            background-color: #3b82f6;
+            transition: width 1s ease-in-out;
+        }
+        .analysis-text {
+            white-space: pre-wrap;
+            line-height: 1.6;
+        }
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            margin-top: 20px;
+            font-weight: bold;
+            color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🔍 Veritais - Checagem de Fatos</h1>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('text')">📄 Analisar Texto</button>
+        <button class="tab-btn" onclick="switchTab('image')">🖼️ Analisar Imagem</button>
+    </div>
+
+    <div id="text-input" class="input-area active">
+        <textarea id="text-content" placeholder="Cole aqui a notícia, texto do WhatsApp ou dúvida que deseja verificar..."></textarea>
+    </div>
+
+    <div id="image-input" class="input-area">
+        <div class="file-upload">
+            <input type="file" id="image-file" accept="image/png, image/jpeg, image/webp">
+            <p>Selecione um print, foto ou meme para análise</p>
+        </div>
+    </div>
+
+    <button id="verify-btn" class="submit-btn" onclick="verifyContent()">Verificar Fato</button>
+    
+    <div id="loading" class="loading-spinner">
+        ⏳ Analisando com IA e pesquisando na internet... Aguarde.
+    </div>
+
+    <div id="result-container">
+        <h2 id="result-verdict" class="result-title"></h2>
+        
+        <p><strong>Nível de Confiança da IA: <span id="confidence-text"></span>%</strong></p>
+        <div class="confidence-bar">
+            <div id="confidence-fill" class="confidence-level" style="width: 0%"></div>
+        </div>
+
+        <p><strong>Resumo:</strong> <span id="result-summary"></span></p>
+        
+        <hr style="border: 0; border-top: 1px solid #ccc; margin: 20px 0;">
+        
+        <p><strong>Análise Detalhada:</strong></p>
+        <div id="result-analysis" class="analysis-text"></div>
+    </div>
+</div>
+
+<script>
+    // Configuração do servidor
+    const API_URL = "http://127.0.0.1:8000";
+    let currentMode = 'text';
+
+    // Troca entre abas
+    function switchTab(mode) {
+        currentMode = mode;
+        
+        // Atualiza botões
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+
+        // Atualiza áreas de input
+        document.querySelectorAll('.input-area').forEach(area => area.classList.remove('active'));
+        document.getElementById(`${mode}-input`).classList.add('active');
+
+        // Esconde resultado anterior
+        document.getElementById('result-container').style.display = 'none';
+    }
+
+    // Função principal de verificação
+    async function verifyContent() {
+        const btn = document.getElementById('verify-btn');
+        const loading = document.getElementById('loading');
+        const resultContainer = document.getElementById('result-container');
+        
+        // Preparando estado de carregamento
+        btn.disabled = true;
+        btn.innerText = "Analisando...";
+        loading.style.display = 'block';
+        resultContainer.style.display = 'none';
+
+        try {
+            let response;
+
+            if (currentMode === 'text') {
+                const text = document.getElementById('text-content').value;
+                if (!text) {
+                    alert("Por favor, digite um texto para analisar.");
+                    resetButton();
+                    return;
+                }
+
+                response = await fetch(`${API_URL}/verify/text`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: text, title: "Verificação Manual" })
+                });
+
+            } else if (currentMode === 'image') {
+                const fileInput = document.getElementById('image-file');
+                if (!fileInput.files[0]) {
+                    alert("Por favor, selecione uma imagem.");
+                    resetButton();
+                    return;
+                }
+
+                const formData = new FormData();
+                formData.append("file", fileInput.files[0]);
+
+                response = await fetch(`${API_URL}/verify/image`, {
+                    method: 'POST',
+                    body: formData
+                });
+            }
+
+            if (!response.ok) {
+                throw new Error("Erro na comunicação com o servidor.");
+            }
+
+            const data = await response.json();
+            showResult(data);
+
+        } catch (error) {
+            alert("Erro: " + error.message + "\nVerifique se o terminal do backend está rodando!");
+        } finally {
+            resetButton();
+        }
+    }
+
+    function showResult(data) {
+        const container = document.getElementById('result-container');
+        
+        // Limpa classes anteriores
+        container.className = '';
+        container.classList.add(`verdict-${data.verdict}`);
+
+        // Preenche os dados
+        document.getElementById('result-verdict').innerText = `Veredito: ${data.verdict}`;
+        document.getElementById('result-summary').innerText = data.summary;
+        document.getElementById('confidence-text').innerText = data.confidence;
+        
+        // Anima a barra de confiança
+        setTimeout(() => {
+            document.getElementById('confidence-fill').style.width = `${data.confidence}%`;
+        }, 100);
+
+        // Trata o texto da análise para mostrar bonitinho (remove chaves JSON se houver)
+        let cleanAnalysis = data.analysis;
+        try {
+            // Se o backend mandou um JSON dentro da string, a gente limpa
+            const parsed = JSON.parse(data.analysis);
+            if(parsed.analysis) cleanAnalysis = parsed.analysis;
+        } catch(e) {}
+        
+        document.getElementById('result-analysis').innerText = cleanAnalysis;
+
+        // Exibe o container
+        container.style.display = 'block';
+    }
+
+    function resetButton() {
+        const btn = document.getElementById('verify-btn');
+        const loading = document.getElementById('loading');
+        btn.disabled = false;
+        btn.innerText = "Verificar Fato";
+        loading.style.display = 'none';
+    }
+</script>
+
+</body>
+</html>
